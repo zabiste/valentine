@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>💘 Valentine?</title>
+  <style>
+    :root { --bg1:#fff1f6; --bg2:#ffe4ef; --ink:#1f2937; }
+    * { box-sizing: border-box; }
+
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      height:100vh;
+      display:grid;
+      place-items:center;
+      background: radial-gradient(circle at 20% 10%, var(--bg2), var(--bg1));
+      overflow:hidden;
+    }
+
+    .card{
+      width:min(520px,92vw);
+      background: rgba(255,255,255,.88);
+      backdrop-filter: blur(10px);
+      border-radius:24px;
+      padding:28px 22px 34px;
+      box-shadow:0 16px 40px rgba(0,0,0,.08);
+      text-align:center;
+      position:relative;
+      overflow:hidden;
+      z-index:2;
+    }
+
+    h1{ margin:0 0 18px; font-size: clamp(26px,4vw,34px); }
+
+    /* Fixed play area so NO can’t disappear */
+    .play-area{
+      position: relative;
+      width: 100%;
+      height: 120px;           /* fixed height = no layout shift */
+      margin-top: 6px;
+    }
+
+    .yes{
+      position:absolute;
+      left:50%;
+      top:14px;
+      transform: translateX(-115px); /* places Yes on the left side */
+      border:0;
+      border-radius:999px;
+      padding:12px 18px;
+      font-size:16px;
+      cursor:pointer;
+      background:#ff3d77;
+      color:#fff;
+      box-shadow:0 10px 24px rgba(255, 61, 119, .25);
+      user-select:none;
+      touch-action:manipulation;
+      z-index:3;
+    }
+    .yes:active{ transform: translateX(-115px) scale(.98); }
+
+    .no{
+      position:absolute;
+      left:50%;
+      top:14px;
+      transform: translateX(15px);   /* places No on the right side initially */
+      border:0;
+      border-radius:999px;
+      padding:12px 18px;
+      font-size:16px;
+      cursor:pointer;
+      background:#e5e7eb;
+      color:#111827;
+      user-select:none;
+      touch-action:manipulation;
+      z-index:3;
+      white-space: nowrap;
+    }
+    .no small{
+      opacity:.7;
+      margin-left:6px;
+      font-size:12px;
+    }
+
+    .page{ display:none; }
+    .page.active{ display:block; }
+
+    /* Second page */
+    .super-text{
+      font-size: clamp(36px,8vw,60px);
+      font-weight:900;
+      color:#ff2e63;
+      animation:pulse 1.5s infinite;
+      margin:6px 0 18px;
+    }
+    .sub-text{
+      font-size:20px;
+      line-height:1.6;
+      margin-top:10px;
+    }
+    @keyframes pulse{
+      0%{ transform:scale(1); }
+      50%{ transform:scale(1.08); }
+      100%{ transform:scale(1); }
+    }
+
+    /* Floating hearts */
+    .hearts{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      opacity:.18;
+      font-size:22px;
+      user-select:none;
+      z-index:1;
+    }
+    .hearts span{ position:absolute; animation: float 8s linear infinite; }
+    @keyframes float{
+      from{ transform: translateY(20px); opacity:0; }
+      15%{ opacity:1; }
+      to{ transform: translateY(-120vh); opacity:0; }
+    }
+
+    /* Confetti canvas */
+    canvas#confetti{
+      position:fixed;
+      inset:0;
+      width:100vw;
+      height:100vh;
+      pointer-events:none;
+      z-index:999;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="confetti"></canvas>
+  <div class="hearts" id="hearts"></div>
+
+  <div class="card">
+    <!-- Page 1 -->
+    <section class="page active" id="page1">
+      <h1>Will you be my Valentine? 💘</h1>
+
+      <div class="play-area" id="playArea">
+        <button class="yes" id="yesBtn">Yes 💖</button>
+        <button class="no" id="noBtn">No <small>Try me</small></button>
+      </div>
+    </section>
+
+    <!-- Page 2 -->
+    <section class="page" id="page2">
+      <div class="super-text">СУПЕР ❤️</div>
+      <div class="sub-text">
+        💕 Биди спремна во Сабота во 8. <br/>
+        И биди гладна... 😘🥂 🍜... 😏👅👌👈
+      </div>
+
+      <!-- Put music.mp3 next to index.html -->
+      <audio id="bgMusic" src="music.mp3" preload="auto" loop></audio>
+    </section>
+  </div>
+
+<script>
+  const playArea = document.getElementById('playArea');
+  const yesBtn = document.getElementById('yesBtn');
+  const noBtn  = document.getElementById('noBtn');
+  const page1  = document.getElementById('page1');
+  const page2  = document.getElementById('page2');
+  const bgMusic = document.getElementById('bgMusic');
+
+  // --- Move NO within the play area (never disappears) ---
+  function moveNo() {
+    const pad = 8;
+    const areaRect = playArea.getBoundingClientRect();
+
+    // Use offset sizes (stable)
+    const w = noBtn.offsetWidth;
+    const h = noBtn.offsetHeight;
+
+    const minX = pad;
+    const maxX = Math.max(pad, areaRect.width  - w - pad);
+    const minY = pad;
+    const maxY = Math.max(pad, areaRect.height - h - pad);
+
+    const x = Math.floor(minX + Math.random() * (maxX - minX + 1));
+    const y = Math.floor(minY + Math.random() * (maxY - minY + 1));
+
+    // Set absolute position within play area
+    noBtn.style.left = x + "px";
+    noBtn.style.top  = y + "px";
+    noBtn.style.transform = "translate(0,0)";
+  }
+
+  // Phone-first: run away on touch attempt
+  noBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveNo(); }, { passive: false });
+  // Desktop hover
+  noBtn.addEventListener('mouseenter', moveNo);
+  // If clicked somehow
+  noBtn.addEventListener('click', (e) => { e.preventDefault(); moveNo(); });
+
+  // --- Confetti (canvas, no libs) ---
+  const canvas = document.getElementById('confetti');
+  const ctx = canvas.getContext('2d');
+  let pieces = [];
+  let running = false;
+
+  function resize() {
+    canvas.width = Math.floor(window.innerWidth * devicePixelRatio);
+    canvas.height = Math.floor(window.innerHeight * devicePixelRatio);
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function burstConfetti() {
+    pieces = [];
+    for (let i = 0; i < 180; i++) {
+      pieces.push({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+        vx: (Math.random() - 0.5) * 14,
+        vy: (Math.random() - 0.9) * 16,
+        r: 3 + Math.random() * 5,
+        rot: Math.random() * Math.PI,
+        vr: (Math.random() - 0.5) * 0.25,
+        life: 80 + Math.random() * 40,
+        kind: Math.random() < 0.35 ? 'heart' : 'rect'
+      });
+    }
+    running = true;
+    requestAnimationFrame(tick);
+    setTimeout(() => { running = false; }, 2600);
+  }
+
+  function drawHeart(x, y, size, rot) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.beginPath();
+    const s = size;
+    ctx.moveTo(0, s * 0.3);
+    ctx.bezierCurveTo(0, -s * 0.2, -s, -s * 0.2, -s, s * 0.3);
+    ctx.bezierCurveTo(-s, s, 0, s * 1.1, 0, s * 1.5);
+    ctx.bezierCurveTo(0, s * 1.1, s, s, s, s * 0.3);
+    ctx.bezierCurveTo(s, -s * 0.2, 0, -s * 0.2, 0, s * 0.3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function tick() {
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+    for (const p of pieces) {
+      p.x += p.vx; p.y += p.vy;
+      p.vy += 0.28; p.vx *= 0.985;
+      p.rot += p.vr; p.life -= 1;
+
+      const a = Math.max(0, Math.min(1, p.life / 120));
+      ctx.globalAlpha = a;
+      ctx.fillStyle = `hsl(${Math.floor(330 + Math.random()*40)}, 90%, 60%)`;
+
+      if (p.kind === 'heart') drawHeart(p.x, p.y, p.r, p.rot);
+      else {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillRect(-p.r, -p.r, p.r * 2.2, p.r * 1.6);
+        ctx.restore();
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    pieces = pieces.filter(p => p.life > 0 && p.y < window.innerHeight + 40);
+    if (running || pieces.length) requestAnimationFrame(tick);
+    else ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  }
+
+  // YES => confetti + page2 + start music
+  yesBtn.addEventListener('click', async () => {
+    burstConfetti();
+    page1.classList.remove('active');
+    page2.classList.add('active');
+    try { bgMusic.currentTime = 0; await bgMusic.play(); } catch(e) { console.warn(e); }
+  });
+
+  // Floating hearts
+  const heartsEl = document.getElementById('hearts');
+  const heartChars = ['💗','💖','💘','💞','💕','❤️','😘','🌹'];
+  for (let i = 0; i < 24; i++) {
+    const s = document.createElement('span');
+    s.textContent = heartChars[Math.floor(Math.random()*heartChars.length)];
+    s.style.left = Math.floor(Math.random()*100) + 'vw';
+    s.style.bottom = (-10 - Math.random()*40) + 'vh';
+    s.style.animationDelay = (Math.random()*8) + 's';
+    s.style.fontSize = (18 + Math.random()*20) + 'px';
+    heartsEl.appendChild(s);
+  }
+</script>
+</body>
+</html>
